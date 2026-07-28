@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     "dj_rest_auth",
     "dj_rest_auth.registration",
     # Domain apps
-    "accounts",
+    "accounts.apps.AccountsConfig",
     "patients",
     "practitioners",
     "appointments",
@@ -68,7 +68,9 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        # web/templates first so our allauth overrides beat package templates
+        # (allauth is listed before `web` in INSTALLED_APPS).
+        "DIRS": [BASE_DIR / "web" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -134,17 +136,29 @@ REST_AUTH = {
     "USE_JWT": True,
     "JWT_AUTH_HTTPONLY": False,
     "SESSION_LOGIN": False,
+    "REGISTER_SERIALIZER": "accounts.serializers.SignupSerializer",
+    "USER_DETAILS_SERIALIZER": "accounts.serializers.UserSerializer",
 }
 
 ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_ADAPTER = "accounts.adapters.AccountAdapter"
+SOCIALACCOUNT_ADAPTER = "accounts.adapters.SocialAccountAdapter"
+# Autoconnect SocialApp from SOCIALACCOUNT_PROVIDERS['google']['APP']
+SOCIALACCOUNT_STORE_TOKENS = False
 
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "home"
 ACCOUNT_LOGOUT_REDIRECT_URL = "home"
 LOGIN_URL = "account_login"
+
+# Used by API GoogleLoginView (Docs/04 / Docs/05 callback path).
+GOOGLE_OAUTH_CALLBACK_URL = env(
+    "GOOGLE_OAUTH_CALLBACK_URL",
+    default="http://localhost:8000/accounts/google/login/callback/",
+)
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",

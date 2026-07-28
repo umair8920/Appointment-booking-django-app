@@ -10,20 +10,7 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom mb-4">
-    <div class="container">
-      <a class="navbar-brand fw-semibold" href="{% url 'home' %}">ClinicBook</a>
-      <div class="navbar-nav ms-auto gap-2 flex-row align-items-center">
-        {% if user.is_authenticated %}
-          <span class="nav-link text-muted small mb-0">{{ user.email }}</span>
-          <a class="nav-link" href="{% url 'account_logout' %}">Logout</a>
-        {% else %}
-          <a class="nav-link" href="{% url 'account_login' %}">Login</a>
-          <a class="btn btn-primary btn-sm" href="{% url 'account_signup' %}">Sign up</a>
-        {% endif %}
-      </div>
-    </div>
-  </nav>
+  {% include "web/includes/nav.html" %}
 
   <main class="container pb-5">
     {% if messages %}
