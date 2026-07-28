@@ -1,0 +1,151 @@
+{% extends "web/base.html" %}
+{% load status_badges %}
+
+{% block title %}Staff panel — ClinicBook{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-2">Staff panel</h1>
+<p class="text-muted mb-4">Simple overview of users, bookings, payments, and totals.</p>
+
+<section class="mb-5">
+  <h2 class="h5 mb-3">Analytics</h2>
+  <div class="row g-3">
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3 bg-white h-100">
+        <div class="text-muted small">Users</div>
+        <div class="fs-4 fw-semibold">{{ analytics.users_total }}</div>
+        <div class="small text-muted">{{ analytics.patients }} patients · {{ analytics.practitioners }} practitioners</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3 bg-white h-100">
+        <div class="text-muted small">Appointments</div>
+        <div class="fs-4 fw-semibold">{{ analytics.appointments_total }}</div>
+        <div class="small text-muted">
+          {{ analytics.appointments_confirmed }} confirmed ·
+          {{ analytics.appointments_pending }} pending ·
+          {{ analytics.appointments_cancelled }} cancelled
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3 bg-white h-100">
+        <div class="text-muted small">Payments</div>
+        <div class="fs-4 fw-semibold">{{ analytics.payments_succeeded }}</div>
+        <div class="small text-muted">
+          {{ analytics.payments_pending }} pending ·
+          {{ analytics.payments_refunded }} refunded
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="border rounded p-3 bg-white h-100">
+        <div class="text-muted small">Revenue (succeeded)</div>
+        <div class="fs-4 fw-semibold">${{ analytics.revenue }}</div>
+        <div class="small text-muted">{{ analytics.open_slots }} open slots</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="mb-5" id="users">
+  <h2 class="h5 mb-3">Users</h2>
+  <div class="table-responsive card border-0 shadow-sm">
+    <table class="table mb-0 align-middle table-sm">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Profile</th>
+          <th>Staff</th>
+          <th>Joined</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr>
+            <td>{{ u.email }}</td>
+            <td>{{ u.role|default:"—" }}</td>
+            <td>{% if u.is_profile_complete %}<span class="badge bg-success">Complete</span>{% else %}<span class="badge bg-secondary">Incomplete</span>{% endif %}</td>
+            <td>{% if u.is_staff %}Yes{% else %}—{% endif %}</td>
+            <td class="small text-muted">{{ u.date_joined }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="text-muted">No users yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="mb-5" id="appointments">
+  <h2 class="h5 mb-3">Appointment history</h2>
+  <div class="table-responsive card border-0 shadow-sm">
+    <table class="table mb-0 align-middle table-sm">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>When</th>
+          <th>Patient</th>
+          <th>Practitioner</th>
+          <th>Status</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for appt in appointments %}
+          <tr>
+            <td>{{ appt.id }}</td>
+            <td>{{ appt.slot.start_time }}</td>
+            <td>{{ appt.patient.user.email }}</td>
+            <td>{{ appt.practitioner.user.email }}</td>
+            <td><span class="badge {% status_badge_class appt.status %}">{{ appt.get_status_display }}</span></td>
+            <td class="small text-muted">{{ appt.created_at }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="text-muted">No appointments yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="payments">
+  <h2 class="h5 mb-3">Payments</h2>
+  <div class="table-responsive card border-0 shadow-sm">
+    <table class="table mb-0 align-middle table-sm">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Patient</th>
+          <th>Appointment</th>
+          <th>Stripe PI</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pay in payments %}
+          <tr>
+            <td>{{ pay.id }}</td>
+            <td>${{ pay.amount }} {{ pay.currency|upper }}</td>
+            <td>
+              {% if pay.status == "succeeded" %}<span class="badge bg-success">Succeeded</span>
+              {% elif pay.status == "failed" %}<span class="badge bg-danger">Failed</span>
+              {% elif pay.status == "refunded" %}<span class="badge bg-warning text-dark">Refunded</span>
+              {% else %}<span class="badge bg-secondary">{{ pay.get_status_display }}</span>{% endif %}
+            </td>
+            <td>{{ pay.appointment.patient.user.email }}</td>
+            <td>#{{ pay.appointment_id }}</td>
+            <td class="small font-monospace">{{ pay.stripe_payment_intent_id|truncatechars:24 }}</td>
+            <td class="small text-muted">{{ pay.updated_at }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7" class="text-muted">No payments yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

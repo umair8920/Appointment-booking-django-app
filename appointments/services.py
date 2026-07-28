@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -9,10 +11,51 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from accounts.models import User
 from appointments.models import Appointment, AvailabilitySlot
 from patients.models import PatientProfile
+from practitioners.models import PractitionerProfile
 
 
 class AppointmentServiceError(Exception):
     """Domain error raised by appointment services."""
+
+
+def create_availability_slot(
+    *,
+    practitioner: PractitionerProfile,
+    start_time: datetime,
+    end_time: datetime,
+) -> AvailabilitySlot:
+    """Manual availability entry (FR-6)."""
+    if timezone.is_naive(start_time):
+        start_time = timezone.make_aware(start_time, timezone.get_current_timezone())
+    if timezone.is_naive(end_time):
+        end_time = timezone.make_aware(end_time, timezone.get_current_timezone())
+
+    if end_time <= start_time:
+        raise ValidationError({"end_time": "End time must be after start time."})
+    if start_time <= timezone.now():
+        raise ValidationError({"start_time": "Start time must be in the future."})
+
+    try:
+        return AvailabilitySlot.objects.create(
+            practitioner=practitioner,
+            start_time=start_time,
+            end_time=end_time,
+            source=AvailabilitySlot.Source.MANUAL,
+        )
+    except IntegrityError as exc:
+        raise ValidationError(
+            {"start_time": "You already have a slot starting at this time."}
+        ) from exc
+
+
+@transaction.atomic
+def delete_availability_slot(*, slot: AvailabilitySlot, practitioner: PractitionerProfile) -> None:
+    """Remove an open manual/open slot owned by this practitioner."""
+    if slot.practitioner_id != practitioner.id:
+        raise PermissionDenied(detail="You can only manage your own availability.")
+    if slot.is_booked:
+        raise ValidationError({"detail": "Booked slots cannot be deleted; cancel the appointment first."})
+    slot.delete()
 
 
 @transaction.atomic

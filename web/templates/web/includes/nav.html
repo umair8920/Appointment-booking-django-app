@@ -13,6 +13,9 @@
         {% else %}
           <a class="nav-link" href="{% url 'complete_profile' %}">Complete profile</a>
         {% endif %}
+        {% if user.is_staff %}
+          <a class="nav-link" href="{% url 'staff_dashboard' %}">Staff panel</a>
+        {% endif %}
         <span class="nav-link text-muted small mb-0">{{ user.email }}</span>
         <a class="nav-link" href="{% url 'account_logout' %}">Logout</a>
       {% else %}

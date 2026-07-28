@@ -1,8 +1,38 @@
 """Demo UI forms — thin validation, domain services do the work (Docs/10)."""
 
 from django import forms
+from django.utils import timezone
 
 from accounts.models import User
+
+
+class AvailabilitySlotForm(forms.Form):
+    """Practitioner adds an open slot (FR-6)."""
+
+    start_time = forms.DateTimeField(
+        widget=forms.DateTimeInput(
+            attrs={"type": "datetime-local", "class": "form-control"},
+            format="%Y-%m-%dT%H:%M",
+        ),
+        input_formats=["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"],
+    )
+    end_time = forms.DateTimeField(
+        widget=forms.DateTimeInput(
+            attrs={"type": "datetime-local", "class": "form-control"},
+            format="%Y-%m-%dT%H:%M",
+        ),
+        input_formats=["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"],
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get("start_time")
+        end = cleaned.get("end_time")
+        if start and end and end <= start:
+            self.add_error("end_time", "End time must be after start time.")
+        if start and start <= timezone.now():
+            self.add_error("start_time", "Start time must be in the future.")
+        return cleaned
 
 
 class CompleteProfileForm(forms.Form):
@@ -51,7 +81,11 @@ class CompleteProfileForm(forms.Form):
             self.initial["role"] = user.role
         else:
             self.fields["role"].required = True
-            self.fields["role"].widget = forms.RadioSelect()
+            # Explicit select — RadioSelect markup was easy to miss / unstyled.
+            self.fields["role"].widget = forms.Select(
+                attrs={"class": "form-select form-select-lg", "id": "id_role"}
+            )
+            self.fields["role"].choices = [("", "Select role...")] + list(User.Role.choices)
 
     def clean(self):
         cleaned = super().clean()

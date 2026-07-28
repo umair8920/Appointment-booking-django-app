@@ -9,6 +9,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Count, Sum
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
@@ -21,10 +22,16 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from accounts.models import User
 from accounts.services import complete_user_profile
 from appointments.models import Appointment, AvailabilitySlot
-from appointments.services import cancel_appointment, create_appointment
+from appointments.services import (
+    cancel_appointment,
+    create_appointment,
+    create_availability_slot,
+    delete_availability_slot,
+)
+from payments.models import Payment
 from practitioners.models import PractitionerProfile
-from web.forms import CompleteProfileForm
-from web.mixins import ProfileCompleteRequiredMixin
+from web.forms import AvailabilitySlotForm, CompleteProfileForm
+from web.mixins import ProfileCompleteRequiredMixin, StaffRequiredMixin
 
 
 class HomeView(TemplateView):
@@ -163,14 +170,125 @@ class MyAppointmentsView(ProfileCompleteRequiredMixin, View):
 
 
 class MyScheduleView(ProfileCompleteRequiredMixin, View):
+    """Practitioner schedule + manual availability (FR-6, Docs/10)."""
+
     template_name = "web/my_schedule.html"
+
+    def _context(self, request, form=None):
+        profile = request.user.practitioner_profile
+        return {
+            "form": form or AvailabilitySlotForm(),
+            "open_slots": AvailabilitySlot.objects.filter(
+                practitioner=profile, is_booked=False
+            ).order_by("start_time"),
+            "appointments": (
+                Appointment.objects.filter(practitioner=profile)
+                .select_related("patient__user", "slot")
+                .order_by("slot__start_time")
+            ),
+        }
 
     def get(self, request):
         if request.user.role != User.Role.PRACTITIONER:
             return HttpResponseForbidden("Practitioners only.")
-        appointments = (
-            Appointment.objects.filter(practitioner=request.user.practitioner_profile)
-            .select_related("patient__user", "slot")
-            .order_by("slot__start_time")
+        return render(request, self.template_name, self._context(request))
+
+    def post(self, request):
+        if request.user.role != User.Role.PRACTITIONER:
+            return HttpResponseForbidden("Practitioners only.")
+
+        profile = request.user.practitioner_profile
+        action = request.POST.get("action", "create")
+
+        if action == "delete":
+            slot = get_object_or_404(
+                AvailabilitySlot, pk=request.POST.get("slot_id"), practitioner=profile
+            )
+            try:
+                delete_availability_slot(slot=slot, practitioner=profile)
+                messages.success(request, "Availability slot removed.")
+            except Exception as exc:
+                messages.error(request, str(getattr(exc, "detail", exc)))
+            return redirect("my_schedule")
+
+        form = AvailabilitySlotForm(request.POST)
+        if form.is_valid():
+            try:
+                create_availability_slot(
+                    practitioner=profile,
+                    start_time=form.cleaned_data["start_time"],
+                    end_time=form.cleaned_data["end_time"],
+                )
+                messages.success(request, "Availability slot added.")
+                return redirect("my_schedule")
+            except DRFValidationError as exc:
+                detail = exc.detail
+                if isinstance(detail, dict):
+                    for field, errs in detail.items():
+                        msg = errs[0] if isinstance(errs, list) else errs
+                        if field in form.fields:
+                            form.add_error(field, str(msg))
+                        else:
+                            form.add_error(None, str(msg))
+                else:
+                    form.add_error(None, str(detail))
+
+        return render(request, self.template_name, self._context(request, form=form))
+
+
+class StaffDashboardView(StaffRequiredMixin, TemplateView):
+    """Simple staff panel: analytics + users + appointments + payments."""
+
+    template_name = "web/staff_dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        appointment_counts = {
+            row["status"]: row["c"]
+            for row in Appointment.objects.values("status").annotate(c=Count("id"))
+        }
+        payment_counts = {
+            row["status"]: row["c"]
+            for row in Payment.objects.values("status").annotate(c=Count("id"))
+        }
+        revenue = (
+            Payment.objects.filter(status=Payment.Status.SUCCEEDED).aggregate(
+                total=Sum("amount")
+            )["total"]
+            or 0
         )
-        return render(request, self.template_name, {"appointments": appointments})
+
+        ctx["analytics"] = {
+            "users_total": User.objects.count(),
+            "patients": User.objects.filter(role=User.Role.PATIENT).count(),
+            "practitioners": User.objects.filter(role=User.Role.PRACTITIONER).count(),
+            "appointments_total": Appointment.objects.count(),
+            "appointments_confirmed": appointment_counts.get(
+                Appointment.Status.CONFIRMED, 0
+            ),
+            "appointments_pending": appointment_counts.get(
+                Appointment.Status.PENDING_PAYMENT, 0
+            ),
+            "appointments_cancelled": appointment_counts.get(
+                Appointment.Status.CANCELLED, 0
+            ),
+            "payments_succeeded": payment_counts.get(Payment.Status.SUCCEEDED, 0),
+            "payments_pending": payment_counts.get(Payment.Status.PENDING, 0),
+            "payments_refunded": payment_counts.get(Payment.Status.REFUNDED, 0),
+            "revenue": revenue,
+            "open_slots": AvailabilitySlot.objects.filter(is_booked=False).count(),
+        }
+        ctx["users"] = User.objects.order_by("-date_joined")[:100]
+        ctx["appointments"] = (
+            Appointment.objects.select_related(
+                "patient__user", "practitioner__user", "slot"
+            ).order_by("-created_at")[:100]
+        )
+        ctx["payments"] = (
+            Payment.objects.select_related(
+                "appointment__patient__user",
+                "appointment__practitioner__user",
+            ).order_by("-created_at")[:100]
+        )
+        return ctx

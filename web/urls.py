@@ -20,4 +20,5 @@ urlpatterns = [
     ),
     path("my-appointments/", views.MyAppointmentsView.as_view(), name="my_appointments"),
     path("my-schedule/", views.MyScheduleView.as_view(), name="my_schedule"),
+    path("staff/", views.StaffDashboardView.as_view(), name="staff_dashboard"),
 ]

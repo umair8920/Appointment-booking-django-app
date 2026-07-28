@@ -79,4 +79,57 @@ class WebUISmokeTests(TestCase):
         self.client.force_login(self.patient)
         self.assertEqual(self.client.get(reverse("my_appointments")).status_code, 200)
         self.client.force_login(self.practitioner)
-        self.assertEqual(self.client.get(reverse("my_schedule")).status_code, 200)
+        response = self.client.get(reverse("my_schedule"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Add availability")
+
+    def test_practitioner_can_add_availability(self):
+        self.client.force_login(self.practitioner)
+        start = timezone.now() + timedelta(days=3)
+        end = start + timedelta(minutes=45)
+        response = self.client.post(
+            reverse("my_schedule"),
+            {
+                "action": "create",
+                "start_time": start.strftime("%Y-%m-%dT%H:%M"),
+                "end_time": end.strftime("%Y-%m-%dT%H:%M"),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            AvailabilitySlot.objects.filter(
+                practitioner=self.practitioner.practitioner_profile,
+                start_time__date=start.date(),
+                is_booked=False,
+            ).exists()
+        )
+
+
+class StaffDashboardTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user(
+            email="staff@example.com",
+            password="Str0ngPass!word",
+            is_staff=True,
+            is_profile_complete=True,
+        )
+        self.patient = User.objects.create_user(
+            email="plain@example.com",
+            password="Str0ngPass!word",
+            role=User.Role.PATIENT,
+            is_profile_complete=True,
+        )
+
+    def test_staff_can_open_dashboard(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse("staff_dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Analytics")
+        self.assertContains(response, "Users")
+        self.assertContains(response, "Appointment history")
+        self.assertContains(response, "Payments")
+
+    def test_non_staff_forbidden(self):
+        self.client.force_login(self.patient)
+        response = self.client.get(reverse("staff_dashboard"))
+        self.assertEqual(response.status_code, 403)

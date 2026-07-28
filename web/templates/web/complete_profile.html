@@ -15,17 +15,24 @@
       {% endif %}
 
       {% if not user.role %}
-        <div class="mb-3">
-          <label class="form-label">I am a</label>
-          {{ form.role }}
-          {% if form.role.errors %}<div class="text-danger small">{{ form.role.errors }}</div>{% endif %}
+        <div class="mb-4">
+          <label class="form-label fw-semibold" for="id_role">I am a</label>
+          <select name="role" id="id_role" class="form-select form-select-lg" required>
+            <option value="" {% if not form.role.value %}selected{% endif %}>Select role...</option>
+            <option value="patient" {% if form.role.value == "patient" %}selected{% endif %}>Patient</option>
+            <option value="practitioner" {% if form.role.value == "practitioner" %}selected{% endif %}>Practitioner</option>
+          </select>
+          {% if form.role.errors %}
+            <div class="text-danger small mt-1">{{ form.role.errors|striptags }}</div>
+          {% endif %}
+          <div class="form-text">Choose whether you book appointments or offer them.</div>
         </div>
       {% else %}
         {{ form.role }}
-        <p class="small text-muted">Role: <strong>{{ user.role }}</strong></p>
+        <p class="small text-muted mb-3">Role: <strong>{{ user.get_role_display }}</strong></p>
       {% endif %}
 
-      <div id="patient-fields" class="{% if user.role == 'practitioner' %}d-none{% endif %}">
+      <div id="patient-fields" class="{% if user.role != 'patient' %}d-none{% endif %}">
         <h2 class="h6 mt-3">Patient details</h2>
         <div class="mb-3">
           <label class="form-label" for="{{ form.date_of_birth.id_for_label }}">Date of birth</label>
@@ -54,7 +61,7 @@
         </div>
       </div>
 
-      <div id="practitioner-fields" class="{% if user.role == 'patient' %}d-none{% endif %}">
+      <div id="practitioner-fields" class="{% if user.role != 'practitioner' %}d-none{% endif %}">
         <h2 class="h6 mt-3">Practitioner details</h2>
         <div class="mb-3">
           <label class="form-label" for="{{ form.specialization.id_for_label }}">Specialization</label>
@@ -86,18 +93,23 @@
 {% block extra_js %}
 <script>
 (function () {
-  const roleInputs = document.querySelectorAll('input[name="role"]');
+  const roleSelect = document.getElementById('id_role');
   const patient = document.getElementById('patient-fields');
   const practitioner = document.getElementById('practitioner-fields');
-  if (!roleInputs.length || !patient || !practitioner) return;
+  if (!patient || !practitioner) return;
+
   function sync() {
-    const selected = document.querySelector('input[name="role"]:checked');
-    const role = selected ? selected.value : '';
-    patient.classList.toggle('d-none', role === 'practitioner');
-    practitioner.classList.toggle('d-none', role === 'patient');
+    const role = roleSelect ? roleSelect.value : '';
+    // When role is already set (hidden input), sections are controlled by server classes.
+    if (!roleSelect) return;
+    patient.classList.toggle('d-none', role !== 'patient');
+    practitioner.classList.toggle('d-none', role !== 'practitioner');
   }
-  roleInputs.forEach((el) => el.addEventListener('change', sync));
-  sync();
+
+  if (roleSelect) {
+    roleSelect.addEventListener('change', sync);
+    sync();
+  }
 })();
 </script>
 {% endblock %}

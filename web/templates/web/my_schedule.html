@@ -4,31 +4,100 @@
 {% block title %}My schedule — ClinicBook{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-4">My schedule</h1>
-{% if appointments %}
-  <div class="table-responsive card border-0 shadow-sm">
-    <table class="table mb-0 align-middle">
-      <thead>
-        <tr>
-          <th>When</th>
-          <th>Patient</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for appt in appointments %}
+<h1 class="h3 mb-2">My schedule</h1>
+<p class="text-muted mb-4">Add open slots patients can book, then track upcoming appointments.</p>
+
+<section class="mb-5">
+  <h2 class="h5 mb-3">Add availability</h2>
+  <form method="post" class="card border-0 shadow-sm p-4">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="create">
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <div class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label" for="{{ form.start_time.id_for_label }}">Starts</label>
+        {{ form.start_time }}
+        {% if form.start_time.errors %}<div class="text-danger small">{{ form.start_time.errors }}</div>{% endif %}
+      </div>
+      <div class="col-md-5">
+        <label class="form-label" for="{{ form.end_time.id_for_label }}">Ends</label>
+        {{ form.end_time }}
+        {% if form.end_time.errors %}<div class="text-danger small">{{ form.end_time.errors }}</div>{% endif %}
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Add slot</button>
+      </div>
+    </div>
+    <p class="form-text mb-0 mt-2">Times use the server timezone (UTC). Typical slot: 30–60 minutes.</p>
+  </form>
+</section>
+
+<section class="mb-5">
+  <h2 class="h5 mb-3">Open slots</h2>
+  {% if open_slots %}
+    <div class="table-responsive card border-0 shadow-sm">
+      <table class="table mb-0 align-middle">
+        <thead>
           <tr>
-            <td>{{ appt.slot.start_time }}</td>
-            <td>{{ appt.patient.user.email }}</td>
-            <td>
-              <span class="badge {% status_badge_class appt.status %}">{{ appt.get_status_display }}</span>
-            </td>
+            <th>Starts</th>
+            <th>Ends</th>
+            <th>Source</th>
+            <th></th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% else %}
-  <p class="text-muted">No booked appointments on your schedule yet.</p>
-{% endif %}
+        </thead>
+        <tbody>
+          {% for slot in open_slots %}
+            <tr>
+              <td>{{ slot.start_time }}</td>
+              <td>{{ slot.end_time }}</td>
+              <td><span class="badge bg-light text-dark border">{{ slot.get_source_display }}</span></td>
+              <td class="text-end">
+                <form method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete">
+                  <input type="hidden" name="slot_id" value="{{ slot.id }}">
+                  <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted mb-0">No open slots yet. Add one above so patients can book you.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2 class="h5 mb-3">Booked appointments</h2>
+  {% if appointments %}
+    <div class="table-responsive card border-0 shadow-sm">
+      <table class="table mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Patient</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for appt in appointments %}
+            <tr>
+              <td>{{ appt.slot.start_time }}</td>
+              <td>{{ appt.patient.user.email }}</td>
+              <td>
+                <span class="badge {% status_badge_class appt.status %}">{{ appt.get_status_display }}</span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted mb-0">No booked appointments on your schedule yet.</p>
+  {% endif %}
+</section>
 {% endblock %}
