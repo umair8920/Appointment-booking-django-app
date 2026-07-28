@@ -209,6 +209,9 @@ CLINIKO_BASE_URL = env(
     "CLINIKO_BASE_URL",
     default="https://api.au1.cliniko.com/v1",
 )
+# Optional — if blank, adapter uses the first business / appointment type from Cliniko.
+CLINIKO_BUSINESS_ID = env("CLINIKO_BUSINESS_ID", default="")
+CLINIKO_APPOINTMENT_TYPE_ID = env("CLINIKO_APPOINTMENT_TYPE_ID", default="")
 
 # Google OAuth (allauth) — set via env in real use.
 SOCIALACCOUNT_PROVIDERS = {

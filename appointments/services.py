@@ -76,10 +76,22 @@ def cancel_appointment(*, appointment: Appointment, acting_user: User) -> Appoin
     slot.save(update_fields=["is_booked"])
 
     if was_confirmed:
-        # Cross-app call via service layer (Docs/01) — Stripe body filled in Milestone 5.
         from payments.services import refund_payment
 
         refund_payment(appointment)
+
+        if appointment.cliniko_appointment_id:
+            from integrations.base import get_pms_adapter
+
+            try:
+                get_pms_adapter().cancel_appointment(appointment)
+            except Exception:
+                # Cancel locally already succeeded; PMS cancel failure is logged.
+                import logging
+
+                logging.getLogger(__name__).exception(
+                    "PMS cancel_appointment failed for appointment %s", appointment.pk
+                )
 
     return appointment
 
