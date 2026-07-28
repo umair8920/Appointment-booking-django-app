@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Any
 
@@ -10,6 +11,24 @@ import requests
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
+
+_SHARD_RE = re.compile(r"-([a-z]{2}\d{1,2})$", re.IGNORECASE)
+
+
+def resolve_cliniko_base_url(api_key: str, configured_base_url: str = "") -> str:
+    """
+    Prefer shard suffix on the API key (e.g. ...-au5 → api.au5.cliniko.com).
+
+    A wrong shard returns 401 even with a valid key.
+    """
+    match = _SHARD_RE.search((api_key or "").strip())
+    if match:
+        shard = match.group(1).lower()
+        return f"https://api.{shard}.cliniko.com/v1"
+    configured = (configured_base_url or "").rstrip("/")
+    if configured:
+        return configured
+    return "https://api.au1.cliniko.com/v1"
 
 
 class ClinikoClientError(Exception):
@@ -20,15 +39,18 @@ class ClinikoClient:
     """HTTP only — no mapping / business logic."""
 
     def __init__(self) -> None:
-        self.base_url = settings.CLINIKO_BASE_URL.rstrip("/")
         self.api_key = settings.CLINIKO_API_KEY
+        self.base_url = resolve_cliniko_base_url(
+            self.api_key, getattr(settings, "CLINIKO_BASE_URL", "")
+        )
         self.session = requests.Session()
         self.session.auth = (self.api_key, "")
+        # Cliniko requires: APP_VENDOR_NAME (contact@email)
         self.session.headers.update(
             {
                 "Accept": "application/json",
                 "Content-Type": "application/json",
-                "User-Agent": "ClinicBook (appointment-booking-eval)",
+                "User-Agent": "ClinicBook (clinicbook@localhost)",
             }
         )
 

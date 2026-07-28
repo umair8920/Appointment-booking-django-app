@@ -55,15 +55,19 @@ def map_appointment_create_payload(
     starts_at: datetime,
     ends_at: datetime,
     appointment_type_id: str | None,
+    business_id: str | None = None,
 ) -> dict[str, Any]:
+    # Cliniko individual_appointments expects starts_at / ends_at (+ business_id).
     payload: dict[str, Any] = {
-        "practitioner_id": int(cliniko_practitioner_id),
-        "patient_id": int(cliniko_patient_id),
-        "appointment_start": starts_at.isoformat(),
-        "appointment_end": ends_at.isoformat(),
+        "practitioner_id": str(cliniko_practitioner_id),
+        "patient_id": str(cliniko_patient_id),
+        "starts_at": starts_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "ends_at": ends_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     if appointment_type_id:
-        payload["appointment_type_id"] = int(appointment_type_id)
+        payload["appointment_type_id"] = str(appointment_type_id)
+    if business_id:
+        payload["business_id"] = str(business_id)
     return payload
 
 

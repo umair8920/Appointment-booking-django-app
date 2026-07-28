@@ -33,11 +33,19 @@ class ClinikoAdapter(PMSAdapter):
             f"businesses/{business_id}/practitioners/{external_practitioner_id}/"
             f"appointment_types/{appointment_type_id}/available_times"
         )
-        raw_times = self.client.list_all(
-            "available_times",
-            path,
-            params={"from": start_day.isoformat(), "to": end_day.isoformat()},
-        )
+        try:
+            raw_times = self.client.list_all(
+                "available_times",
+                path,
+                params={"from": start_day.isoformat(), "to": end_day.isoformat()},
+            )
+        except Exception as exc:
+            # Cliniko returns 404 when business/practitioner/type is not enabled
+            # for online bookings (common on fresh trial accounts).
+            message = str(exc)
+            if "404" in message:
+                return []
+            raise
         slots: list[NormalizedSlot] = []
         for raw in raw_times:
             mapped = mappers.map_available_time(
@@ -61,15 +69,16 @@ class ClinikoAdapter(PMSAdapter):
             starts_at=appointment.slot.start_time,
             ends_at=appointment.slot.end_time,
             appointment_type_id=self._appointment_type_id_optional(),
+            business_id=self._business_id(),
         )
-        created = self.client.post("appointments", payload)
+        created = self.client.post("individual_appointments", payload)
         return mappers.map_created_appointment_id(created)
 
     def cancel_appointment(self, appointment: Appointment) -> None:
         external_id = appointment.cliniko_appointment_id
         if not external_id:
             return
-        self.client.delete(f"appointments/{external_id}")
+        self.client.delete(f"individual_appointments/{external_id}")
 
     def _business_id(self) -> str:
         configured = getattr(settings, "CLINIKO_BUSINESS_ID", "") or ""
@@ -113,8 +122,10 @@ class ClinikoAdapter(PMSAdapter):
         """
         patient = appointment.patient
         email = patient.user.email
-        # Cliniko patient search: q= email
-        found = self.client.get("patients", params={"q": email, "per_page": 5})
+        found = self.client.get(
+            "patients",
+            params={"q[]": f"email:={email}", "per_page": 5},
+        )
         for row in found.get("patients") or []:
             if (row.get("email") or "").lower() == email.lower():
                 return str(row["id"])
