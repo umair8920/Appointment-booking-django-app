@@ -5,7 +5,7 @@ This is the only module allowed to know Cliniko response field names.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 from typing import Any
 
 from django.utils.dateparse import parse_datetime
@@ -39,7 +39,7 @@ def map_available_time(
     if start is None:
         return None
     if timezone.is_naive(start):
-        start = timezone.make_aware(start, timezone.utc)
+        start = timezone.make_aware(start, dt_timezone.utc)
     end = start + timedelta(minutes=duration_minutes)
     return NormalizedSlot(
         external_practitioner_id=external_practitioner_id,
@@ -61,8 +61,8 @@ def map_appointment_create_payload(
     payload: dict[str, Any] = {
         "practitioner_id": str(cliniko_practitioner_id),
         "patient_id": str(cliniko_patient_id),
-        "starts_at": starts_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "ends_at": ends_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "starts_at": starts_at.astimezone(dt_timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "ends_at": ends_at.astimezone(dt_timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     if appointment_type_id:
         payload["appointment_type_id"] = str(appointment_type_id)
