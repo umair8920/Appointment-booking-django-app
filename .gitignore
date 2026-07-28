@@ -23,6 +23,11 @@ media/
 .DS_Store
 Thumbs.db
 
+# Stripe CLI binary (downloaded locally for webhook forwarding)
+tools/stripe/
+tools/stripe_cli.zip
+tools/stripe_listen.*
+
 # Test / coverage
 .coverage
 htmlcov/

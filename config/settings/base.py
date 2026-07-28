@@ -173,6 +173,22 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 
+# Beat schedule — webhook processing is on-demand; these are periodic (Docs/06).
+CELERY_BEAT_SCHEDULE = {
+    "release-stale-pending-appointments": {
+        "task": "appointments.tasks.release_stale_pending_appointments",
+        "schedule": 300.0,  # every 5 minutes
+    },
+    "sync-cliniko-practitioners": {
+        "task": "integrations.tasks.sync_cliniko_practitioners",
+        "schedule": 3600.0,  # hourly — body in Milestone 6
+    },
+    "sync-cliniko-availability": {
+        "task": "integrations.tasks.sync_cliniko_availability",
+        "schedule": 900.0,  # every 15 minutes — body in Milestone 6
+    },
+}
+
 # --- Stripe (06) ---
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
 STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", default="")

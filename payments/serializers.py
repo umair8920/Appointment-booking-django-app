@@ -1,1 +1,1 @@
-"""payments serializers — Milestone 5."""
+"""Payment serializers — Docs/03."""
