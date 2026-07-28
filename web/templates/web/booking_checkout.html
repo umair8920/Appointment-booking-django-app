@@ -1,0 +1,11 @@
+{% extends "web/base.html" %}
+{% load static %}
+{% block title %}Checkout — ClinicBook{% endblock %}
+{% block content %}
+<h1 class="h3">Booking checkout</h1>
+<p class="text-muted">Stripe Elements checkout ships in Milestone 8.</p>
+{% endblock %}
+{% block extra_js %}
+<script src="https://js.stripe.com/v3/"></script>
+<script src="{% static 'web/js/checkout.js' %}"></script>
+{% endblock %}
