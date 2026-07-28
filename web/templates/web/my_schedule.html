@@ -1,6 +1,34 @@
 {% extends "web/base.html" %}
+{% load status_badges %}
+
 {% block title %}My schedule — ClinicBook{% endblock %}
+
 {% block content %}
-<h1 class="h3">My schedule</h1>
-<p class="text-muted">Practitioner schedule view ships in Milestone 8.</p>
+<h1 class="h3 mb-4">My schedule</h1>
+{% if appointments %}
+  <div class="table-responsive card border-0 shadow-sm">
+    <table class="table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>When</th>
+          <th>Patient</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for appt in appointments %}
+          <tr>
+            <td>{{ appt.slot.start_time }}</td>
+            <td>{{ appt.patient.user.email }}</td>
+            <td>
+              <span class="badge {% status_badge_class appt.status %}">{{ appt.get_status_display }}</span>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="text-muted">No booked appointments on your schedule yet.</p>
+{% endif %}
 {% endblock %}

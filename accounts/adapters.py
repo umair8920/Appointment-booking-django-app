@@ -2,14 +2,19 @@
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+from django.urls import reverse
 
 from accounts.models import User
 
 
 class AccountAdapter(DefaultAccountAdapter):
-    """Pass-through; role is set by the API signup serializer / forms."""
+    """Session UI: send incomplete profiles to onboarding after login (Docs/10)."""
 
-    pass
+    def get_login_redirect_url(self, request):
+        user = request.user
+        if user.is_authenticated and not user.is_profile_complete:
+            return reverse("complete_profile")
+        return super().get_login_redirect_url(request)
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):

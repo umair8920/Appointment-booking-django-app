@@ -1,6 +1,44 @@
 {% extends "web/base.html" %}
-{% block title %}Practitioner — ClinicBook{% endblock %}
+
+{% block title %}{{ practitioner.specialization }} — ClinicBook{% endblock %}
+
 {% block content %}
-<h1 class="h3">Practitioner detail</h1>
-<p class="text-muted">Detail + availability ships in Milestone 8.</p>
+<p class="mb-3"><a href="{% url 'practitioner_list' %}">&larr; All practitioners</a></p>
+<div class="row g-4">
+  <div class="col-md-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <h1 class="h4">{{ practitioner.specialization|default:"Practitioner" }}</h1>
+        <p class="text-muted">{{ practitioner.user.email }}</p>
+        <p>{{ practitioner.bio|default:"No bio yet." }}</p>
+        <p class="fw-semibold mb-0">
+          {% if practitioner.consultation_fee %}
+            Consultation fee: ${{ practitioner.consultation_fee }}
+          {% else %}
+            Consultation fee: TBD
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-7">
+    <h2 class="h5 mb-3">Open availability</h2>
+    {% if open_slots %}
+      <ul class="list-group shadow-sm">
+        {% for slot in open_slots %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>
+              {{ slot.start_time }} – {{ slot.end_time|time:"H:i" }}
+            </span>
+            {% if user.role == "patient" %}
+              <a class="btn btn-primary btn-sm" href="{% url 'booking_checkout' slot.id %}">Book</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted">No open slots right now.</p>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

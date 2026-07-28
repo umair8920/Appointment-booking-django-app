@@ -20,5 +20,9 @@
 #   6. celery -A config beat -l info
 #   7. (optional) powershell -File scripts\stripe_listen.ps1
 #
+# Demo UI (Milestone 8 — Docs/10): http://localhost:8000
+#   signup/login → complete profile → practitioners → book slot → Stripe checkout
+#   patient: /my-appointments/   practitioner: /my-schedule/
+#
 # Tests:
 #   python manage.py test

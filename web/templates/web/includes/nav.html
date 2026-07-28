@@ -1,8 +1,18 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom mb-4">
   <div class="container">
     <a class="navbar-brand fw-semibold" href="{% url 'home' %}">ClinicBook</a>
-    <div class="navbar-nav ms-auto gap-2 flex-row align-items-center">
+    <div class="navbar-nav ms-auto gap-2 flex-row align-items-center flex-wrap justify-content-end">
       {% if user.is_authenticated %}
+        {% if user.is_profile_complete %}
+          <a class="nav-link" href="{% url 'practitioner_list' %}">Practitioners</a>
+          {% if user.role == "patient" %}
+            <a class="nav-link" href="{% url 'my_appointments' %}">My appointments</a>
+          {% elif user.role == "practitioner" %}
+            <a class="nav-link" href="{% url 'my_schedule' %}">My schedule</a>
+          {% endif %}
+        {% else %}
+          <a class="nav-link" href="{% url 'complete_profile' %}">Complete profile</a>
+        {% endif %}
         <span class="nav-link text-muted small mb-0">{{ user.email }}</span>
         <a class="nav-link" href="{% url 'account_logout' %}">Logout</a>
       {% else %}

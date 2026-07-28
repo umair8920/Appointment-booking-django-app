@@ -146,6 +146,7 @@ ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 ACCOUNT_ADAPTER = "accounts.adapters.AccountAdapter"
 SOCIALACCOUNT_ADAPTER = "accounts.adapters.SocialAccountAdapter"
+ACCOUNT_FORMS = {"signup": "accounts.forms.SignupForm"}
 # Autoconnect SocialApp from SOCIALACCOUNT_PROVIDERS['google']['APP']
 SOCIALACCOUNT_STORE_TOKENS = False
 

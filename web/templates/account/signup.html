@@ -19,25 +19,8 @@
       {% endif %}
       {% for field in form %}
         <div class="mb-3">
-          <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {% if field.field.widget.input_type == "password" or field.name == "password1" or field.name == "password2" %}
-            <input
-              type="password"
-              name="{{ field.name }}"
-              id="{{ field.id_for_label }}"
-              class="form-control{% if field.errors %} is-invalid{% endif %}"
-              {% if field.field.required %}required{% endif %}
-            >
-          {% else %}
-            <input
-              type="{{ field.field.widget.input_type|default:'text' }}"
-              name="{{ field.name }}"
-              id="{{ field.id_for_label }}"
-              class="form-control{% if field.errors %} is-invalid{% endif %}"
-              value="{% if field.value %}{{ field.value }}{% endif %}"
-              {% if field.field.required %}required{% endif %}
-            >
-          {% endif %}
+          <label class="form-label d-block" for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
           {% if field.errors %}
             <div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>
           {% endif %}
@@ -58,6 +41,9 @@
       <a class="btn btn-outline-secondary w-100" href="{% provider_login_url 'google' process='login' %}">
         Continue with Google
       </a>
+      <p class="small text-muted mt-2 mb-0">
+        After Google sign-in, choose your role on the complete-profile page if needed.
+      </p>
     {% endif %}
   </div>
 </div>

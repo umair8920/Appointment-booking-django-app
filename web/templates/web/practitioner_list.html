@@ -1,6 +1,28 @@
 {% extends "web/base.html" %}
+
 {% block title %}Practitioners — ClinicBook{% endblock %}
+
 {% block content %}
-<h1 class="h3">Practitioners</h1>
-<p class="text-muted">List view ships in Milestone 8.</p>
+<h1 class="h3 mb-4">Practitioners</h1>
+{% if practitioners %}
+  <div class="row g-3">
+    {% for p in practitioners %}
+      <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+          <div class="card-body">
+            <h2 class="h5 mb-1">{{ p.specialization|default:"Practitioner" }}</h2>
+            <p class="text-muted small mb-2">{{ p.user.email }}</p>
+            <p class="mb-3">{{ p.bio|truncatewords:30|default:"No bio yet." }}</p>
+            <p class="fw-semibold mb-3">
+              {% if p.consultation_fee %}${{ p.consultation_fee }}{% else %}Fee TBD{% endif %}
+            </p>
+            <a class="btn btn-primary btn-sm" href="{% url 'practitioner_detail' p.pk %}">View availability</a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-muted">No practitioners available yet.</p>
+{% endif %}
 {% endblock %}

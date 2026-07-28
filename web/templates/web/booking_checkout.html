@@ -1,10 +1,36 @@
 {% extends "web/base.html" %}
 {% load static %}
+
 {% block title %}Checkout — ClinicBook{% endblock %}
+
 {% block content %}
-<h1 class="h3">Booking checkout</h1>
-<p class="text-muted">Stripe Elements checkout ships in Milestone 8.</p>
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <h1 class="h3 mb-3">Confirm &amp; pay</h1>
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <p class="mb-1"><strong>Practitioner:</strong> {{ practitioner.specialization }}</p>
+        <p class="mb-1"><strong>When:</strong> {{ slot.start_time }}</p>
+        <p class="mb-0"><strong>Fee:</strong> ${{ practitioner.consultation_fee }}</p>
+      </div>
+    </div>
+
+    <div
+      id="checkout-root"
+      data-appointment-id="{{ appointment.id }}"
+      data-publishable-key="{{ stripe_publishable_key }}"
+      data-success-url="{% url 'my_appointments' %}"
+    >
+      <div id="payment-element" class="mb-3"></div>
+      <div id="payment-message" class="text-danger small mb-3" role="alert"></div>
+      <button id="submit-payment" type="button" class="btn btn-primary w-100">
+        Pay now
+      </button>
+    </div>
+  </div>
+</div>
 {% endblock %}
+
 {% block extra_js %}
 <script src="https://js.stripe.com/v3/"></script>
 <script src="{% static 'web/js/checkout.js' %}"></script>
