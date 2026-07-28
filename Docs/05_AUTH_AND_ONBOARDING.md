@@ -58,6 +58,19 @@ This is enforced server-side specifically because the brief calls it
 - No separate decision needed later — this was the one open item in this
   file and it's closed by the UI app's existence.
 
+## Local Google OAuth callback (required in Google Cloud Console)
+
+allauth's Google provider callback path (do not invent a custom one):
+
+| Setting in Google Cloud Console | Value (local) |
+|---|---|
+| Authorized JavaScript origins | `http://localhost:8000` |
+| Authorized redirect URIs | `http://localhost:8000/accounts/google/login/callback/` |
+
+`django.contrib.sites` `Site` domain must be `localhost:8000` so generated
+callback URLs match. Client ID / secret stay in env vars
+(`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) — never hardcoded.
+
 ## Provider extensibility (not just PMS)
 
 Because allauth's provider system is itself a plugin architecture, adding a
